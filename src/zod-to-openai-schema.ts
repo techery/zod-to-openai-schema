@@ -1,6 +1,6 @@
 import { z, ZodTypeAny } from 'zod';
 
-type JSONSchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array';
+type JSONSchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | 'array' | 'null';
 
 /**
  * Minimal JSON Schema for OpenAI structured outputs,
@@ -8,7 +8,7 @@ type JSONSchemaType = 'string' | 'number' | 'boolean' | 'integer' | 'object' | '
  */
 export interface OpenAIStructuredOutputSchema {
   $ref?: string;
-  type?: JSONSchemaType | [JSONSchemaType, 'null'];
+  type?: JSONSchemaType;
   enum?: any[];
   anyOf?: OpenAIStructuredOutputSchema[];
   description?: string;
@@ -179,14 +179,14 @@ export function zodToOpenAISchema(
 
           requiredKeys.push(key);
 
-          schema.properties[key] = build(propSchema, false);
+          if (propSchema.isNullable()) {
+            schema.properties[key] = build(z.union([propSchema, z.null()]), false);
+          } else {
+            schema.properties[key] = build(propSchema, false);
+          }
 
           if (propSchema.isOptional()) {
             throw new Error('Optional fields are not allowed');
-          }
-
-          if (propSchema.isNullable() && typeof schema.properties[key].type === 'string') {
-            schema.properties[key].type = [schema.properties[key].type, 'null'];
           }
         }
         if (requiredKeys.length > 0) {
@@ -234,8 +234,7 @@ export function zodToOpenAISchema(
         break;
       }
       case 'ZodNull':
-        schema.type = 'string';
-        schema.enum = [null];
+        schema.type = 'null';
         break;
       case 'ZodDefault':
       case 'ZodOptional':
