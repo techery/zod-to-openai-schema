@@ -233,7 +233,7 @@ describe('zod-to-openai-schema', () => {
         type: 'object',
         properties: {
           name: {
-            type: ['string', 'null'],
+            anyOf: [{ type: 'string' }, { type: 'null' }],
           },
         },
         required: ['name'],
@@ -343,5 +343,85 @@ describe('zod-to-openai-schema', () => {
         },
       },
     });
+  });
+
+  it('should handle very complex schemas', () => {
+    const stringFieldSchema = z.object({
+      type: z.literal('string').describe('string field'),
+      description: z.string().describe('The description of the field'),
+      enum: z.array(z.string()).nullable().describe('The enum values'),
+    });
+
+    const numberFieldSchema = z.object({
+      type: z.literal('number').describe('number field'),
+      description: z.string().describe('The description of the field'),
+    });
+
+    const booleanFieldSchema = z.object({
+      type: z.literal('boolean').describe('boolean field'),
+      description: z.string().describe('The description of the field'),
+    });
+
+    const jsonPrimitivesSchema = z.union([
+      stringFieldSchema,
+      numberFieldSchema,
+      booleanFieldSchema,
+    ]);
+
+    const baseArrayFieldSchema = z.object({
+      type: z.literal('array').describe('array field'),
+      description: z.string().describe('The description of the field'),
+    });
+
+    type ArrayField = z.infer<typeof baseArrayFieldSchema> & {
+      items: JsonFieldType;
+    };
+
+    const arrayFieldSchema: z.ZodType<ArrayField> = baseArrayFieldSchema.extend({
+      items: z
+        .lazy(() => jsonFieldTypeSchema)
+        .describe('The reference to the items definition of array or object from definitions'),
+    });
+
+    const baseObjectPropertySchema = z.object({
+      name: z.string().describe('The name of the property'),
+      required: z.boolean().describe('Whether the property is required'),
+    });
+
+    type ObjectProperty = z.infer<typeof baseObjectPropertySchema> & {
+      definition: JsonFieldType;
+    };
+
+    const objectPropertySchema: z.ZodType<ObjectProperty> = baseObjectPropertySchema.extend({
+      definition: z.lazy(() => jsonPrimitivesSchema),
+    });
+
+    const objectFieldSchema = z.object({
+      type: z.literal('object').describe('object field'),
+      description: z.string().describe('The description of the field'),
+      properties: z.array(objectPropertySchema).describe('The properties of the object'),
+    });
+
+    const jsonFieldTypeSchema = z.union([
+      stringFieldSchema,
+      numberFieldSchema,
+      booleanFieldSchema,
+      arrayFieldSchema,
+      objectFieldSchema,
+    ]);
+
+    type JsonFieldType = z.infer<typeof jsonFieldTypeSchema>;
+
+    const zodSchemaComponentSchema = z.object({
+      type: z.literal('zod-schema').describe('zod schema component'),
+      id: z.string().describe('The id of the component'),
+      name: z.string().describe('The name of the component'),
+      description: z.string().describe('The description of the component'),
+      schema: jsonFieldTypeSchema,
+    });
+
+    const openaiSchema = zodToOpenAISchema(zodSchemaComponentSchema);
+
+    console.log(JSON.stringify(openaiSchema, null, 2));
   });
 });
