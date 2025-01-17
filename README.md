@@ -1,6 +1,6 @@
 # zod-to-openai-schema
 
-[![npm version](https://badge.fury.io/js/@techery/zod-to-openai-schema.svg)](https://www.npmjs.com/package/@techery/zod-to-openai-schema)
+[![npm version](https://badge.fury.io/js/@techery%2Fzod-to-openai-schema.svg)](https://www.npmjs.com/package/@techery/zod-to-openai-schema)
 ![CI Status](https://github.com/techery/zod-to-openai-schema/actions/workflows/pr-checks.yml/badge.svg?branch=main)
 
 Convert [Zod](https://github.com/colinhacks/zod) schemas to [OpenAI function calling](https://platform.openai.com/docs/guides/function-calling) compatible JSON Schema. This library helps you define your OpenAI function parameters using Zod's powerful schema definition system.
